@@ -9,7 +9,7 @@ class Trainer(DataLoad):
     """
     Model trainer class
     """
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(Trainer, self).__init__()
         
         self.gpu_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -25,6 +25,8 @@ class Trainer(DataLoad):
             self.device = "/cpu:0"
 
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
+
+        self.update(kwargs)
 
     def build(self):
         if self.use_mixed_precision:
