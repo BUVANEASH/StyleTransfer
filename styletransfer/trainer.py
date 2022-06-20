@@ -214,19 +214,29 @@ class Trainer(DataLoad):
 
                 loss = content_loss + (style_loss * self.style_weight)
                 if self.use_mixed_precision:
-                    loss = self.optimizer.get_scaled_loss(loss)
+                    _loss = self.optimizer.get_scaled_loss(loss)
+                else:
+                    _loss = loss
                 
-                trainable_variables = self.styletransfer.decoder.trainable_variables
-                if self.model_type == "AdaConv":
-                    trainable_variables += self.styletransfer.globalstyleencoder.trainable_variables
+                trainable_variables = self.styletransfer.trainable_variables
             
             if training:
-                grads = tape.gradient(loss, trainable_variables)
+                grads = tape.gradient(_loss, trainable_variables)
                 if self.use_mixed_precision:
                     grads = self.optimizer.get_unscaled_gradients(grads)
-                grads = [(tf.clip_by_value(grad, -1, 1)) for grad in grads]
+
+                if self.grad_clip["type"] == "clip_by_value":
+                    grads = [(tf.clip_by_value(grad, self.grad_clip["value"][0], self.grad_clip["value"][1])) for grad in grads]
+                elif self.grad_clip["type"] == "clip_by_norm":
+                    grads = [(tf.clip_by_norm(grad, self.grad_clip["value"])) for grad in grads]
 
                 self.optimizer.apply_gradients(zip(grads, trainable_variables))
+
+                if int(self.checkpoint.step) % self.log_step == 0:
+                    _step = tf.cast(self.checkpoint.step, dtype = tf.int64)
+                    for g, v in zip(grads, trainable_variables):
+                        tf.summary.histogram(f"grads/{str(v.name)}", g, step = _step)
+                        tf.summary.histogram(f"weights/{str(v.name)}", v, step = _step)
         
         return styled_content, loss, style_loss, content_loss
 

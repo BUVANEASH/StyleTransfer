@@ -8,6 +8,7 @@
     "dec_n_convs" : [1, 4, 2, 2],
     "random_crop_prob" : 0.5,
     "resize_size" : 512,
+    "grad_clip" : {"type" : "clip_by_value", "value" : [-1, 1]},
     "learning_rate" : 1e-4,
     "batch_size" : 16,
     "style_weight" : 10.0,
